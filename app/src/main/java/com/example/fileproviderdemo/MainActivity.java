@@ -1,5 +1,6 @@
 package com.example.fileproviderdemo;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
@@ -7,12 +8,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
 
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileNotFoundException;
 
 import static android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION;
 import static android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
@@ -20,25 +27,53 @@ import static androidx.core.content.FileProvider.getUriForFile;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
-    public static final String AUTHORITY = "com.example.fileproviderdemo.provider";
+    private Intent mRequestFileIntent;
+    private ParcelFileDescriptor mInputPFD;
     private Context mContext;
+    ImageView mImageView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mImageView = findViewById(R.id.imageView);
+        mContext = getApplicationContext();
 
-        mContext= getApplicationContext();
+        mRequestFileIntent = new Intent(Intent.ACTION_SEND);
+        mRequestFileIntent.setType("image/*");
     }
 
-    public void onButtonClicked(View view){
-        Log.i("Info","imageClicked");
-        File imagePath = new File("/data/data/com.example.mysampleapplication/app_imageDir/myTestImage.jpg");
-        //File newFile = new File(imagePath, "myTestImage.jpg");
-        Uri contentUri = getUriForFile(mContext, AUTHORITY, imagePath);
-        Log.i(TAG, "contentUri: " + contentUri);
-        /*Intent myIntent = new Intent(Intent.ACTION_VIEW);
-        myIntent.setDataAndType(contentUri, mimeType);
-        myIntent.setFlags(FLAG_GRANT_READ_URI_PERMISSION | FLAG_GRANT_WRITE_URI_PERMISSION);
-        mContext.startActivity(myIntent);*/
+    public void onButtonClicked(View view) {
+        Log.i("Info", "imageClicked");
+        startActivityForResult(mRequestFileIntent, 0);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        Log.i(TAG, "onActivityResult");
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.i(TAG, "requestCode : " + requestCode);
+        Log.i(TAG, "resultCode : " + resultCode);
+        if (resultCode != RESULT_OK) {
+            return;
+        } else {
+            Uri returnUri = data.getData();
+            Log.i(TAG, "returnUri : " + returnUri);
+            try {
+                mInputPFD = getContentResolver().openFileDescriptor(returnUri, "r");
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                Log.e(TAG, "File not found.");
+                return;
+            }
+            Log.i(TAG, "mInputPFD : " + mInputPFD);
+            if (mInputPFD != null) {
+                Bitmap bitmap = BitmapFactory.decodeFileDescriptor(mInputPFD.getFileDescriptor());
+                Log.i(TAG, "bitmap : " + bitmap);
+                if (bitmap != null) {
+                    mImageView.setImageBitmap(bitmap);
+                }
+            }
+        }
     }
 }
