@@ -29,7 +29,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private Intent mRequestFileIntent;
     private ParcelFileDescriptor mInputPFD;
-    private Context mContext;
     ImageView mImageView;
 
     @Override
@@ -37,41 +36,26 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mImageView = findViewById(R.id.imageView);
-        mContext = getApplicationContext();
 
-        mRequestFileIntent = new Intent(Intent.ACTION_SEND);
-        mRequestFileIntent.setType("image/*");
-    }
-
-    public void onButtonClicked(View view) {
-        Log.i("Info", "imageClicked");
-        startActivityForResult(mRequestFileIntent, 0);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        Log.i(TAG, "onActivityResult");
-        super.onActivityResult(requestCode, resultCode, data);
-        Log.i(TAG, "requestCode : " + requestCode);
-        Log.i(TAG, "resultCode : " + resultCode);
-        if (resultCode != RESULT_OK) {
-            return;
-        } else {
-            Uri returnUri = data.getData();
+        mRequestFileIntent = getIntent();
+        if (mRequestFileIntent != null) {
+            Uri returnUri = mRequestFileIntent.getData();
             Log.i(TAG, "returnUri : " + returnUri);
-            try {
-                mInputPFD = getContentResolver().openFileDescriptor(returnUri, "r");
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                Log.e(TAG, "File not found.");
-                return;
-            }
-            Log.i(TAG, "mInputPFD : " + mInputPFD);
-            if (mInputPFD != null) {
-                Bitmap bitmap = BitmapFactory.decodeFileDescriptor(mInputPFD.getFileDescriptor());
-                Log.i(TAG, "bitmap : " + bitmap);
-                if (bitmap != null) {
-                    mImageView.setImageBitmap(bitmap);
+            if (returnUri != null) {
+                try {
+                    mInputPFD = getContentResolver().openFileDescriptor(returnUri, "r");
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                    Log.e(TAG, "File not found.");
+                    return;
+                }
+                Log.i(TAG, "mInputPFD : " + mInputPFD);
+                if (mInputPFD != null) {
+                    Bitmap bitmap = BitmapFactory.decodeFileDescriptor(mInputPFD.getFileDescriptor());
+                    Log.i(TAG, "bitmap : " + bitmap);
+                    if (bitmap != null) {
+                        mImageView.setImageBitmap(bitmap);
+                    }
                 }
             }
         }
